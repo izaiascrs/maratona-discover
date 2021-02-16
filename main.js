@@ -1,8 +1,14 @@
-
 const Modal = { 
-    toggle() {
+    open() {
         document.querySelector('.modal-overlay')
-        .classList.toggle('active')
+        .classList.add('active')       
+    },
+    
+    close() {
+        document.querySelector('.modal-overlay')
+        .classList.remove('active')
+        Form.clearFields();
+
     }
 }
 
@@ -94,8 +100,8 @@ const DOM = {
 
 const Utils = {
     formatAmout(value) {
-        value = Number(value) * 100;
-        return value;
+        value = value * 100;
+        return Math.round(value);
     },
 
     formatDate(date) {
@@ -106,18 +112,14 @@ const Utils = {
     },
 
     formatCurrency(value) {
-        const sign = Number(value) < 0 ? '-' : '';
-
-        value = String(value).replace(/\D/g, "");
-
-        value= Number(value) / 100;
+        value= value / 100;
 
         value = value.toLocaleString('pt-br', {
             style: 'currency',
             currency: 'BRL'
         });
 
-        return sign + value;
+        return value;
     }
 }
 
@@ -172,7 +174,7 @@ const Form = {
 
             Form.clearFields();
 
-            Modal.toggle();
+            Modal.close();
             
         } catch (error) {
             alert(error.message)
@@ -195,5 +197,14 @@ const App = {
         App.init();
     },
 }
+const setDefaultFormDate = () => {
+    let date = new Date();
+    let today = `${ date.getFullYear() }-0${ date.getMonth() + 1 }-${ date.getDate() }`;
+    document.getElementById("date").value = today
+}
+
+setDefaultFormDate();
 
 App.init();
+
+
