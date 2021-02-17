@@ -202,7 +202,8 @@ const App = {
 }
 
 const Api = {
-    baseUrl: 'http://localhost:3000/api/v1/transactions/',
+    // 'http://localhost:3000/api/v1/transactions/'
+    baseUrl: '',
     
     async getTransactions() {
         const data = await fetch(Api.baseUrl);
