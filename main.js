@@ -1,5 +1,5 @@
 window.addEventListener('load', () => {
-    Api.getTransactions();    
+    Api.getTransactions();
 })
 
 const setDefaultFormDate = () => {
@@ -26,7 +26,7 @@ const Transaction = {
     all: [],
 
     add(transaction) {
-        Transaction.all.unshift(transaction);
+        Transaction.all.push(transaction);
         App.reload();
     },
 
@@ -161,7 +161,7 @@ const Form = {
         Form.date.value = '';
     },
 
-    submit(event) {
+    async submit(event) {
         event.preventDefault();
 
         try {
@@ -173,17 +173,17 @@ const Form = {
             const formatedDate = `${date[2]}/${date[1]}/${date[0]}`
             
             // chamada a API para adicionar transação no banco de dados 
-            Api.addTransaction({...transaction, date: formatedDate});
-            
-            // adicionar transação na DOM 
+            await Api.addTransaction({...transaction, date: formatedDate});
+           
+           // adicionar transação na DOM 
             Transaction.add(transaction);
             
             Form.clearFields();
             Modal.close();
-            App.reload()
             
         } catch (error) {
-            alert(error.message)
+            alert(error.message);
+            if(error.message.includes('adicionar transação')) Modal.close();
         }
 
     },    
@@ -191,7 +191,12 @@ const Form = {
 
 const App = {
     init() {
-        Transaction.all.forEach(DOM.addTransaction);
+
+        // Ordenar transações pelas mais recentes
+        for (let index = Transaction.all.length; index > 0; index--) {
+            DOM.addTransaction(Transaction.all[index-1], index-1);
+        }
+        
         DOM.updateBalance();
     },
 
@@ -202,22 +207,32 @@ const App = {
 }
 
 const Api = {
-    // 'http://localhost:3000/api/v1/transactions/'
+    // http://localhost:3000/api/v1/transactions/,
     baseUrl: '',
     
     async getTransactions() {
-        const data = await fetch(Api.baseUrl);
-        const res = await data.json();
+        try {
+            const data = await fetch(Api.baseUrl);
+            const res = await data.json();
 
-        // formatar data para dd/mm/yy
-        res.forEach( el => el.date = Utils.formatDate(el.date));
+            // formatar data para dd/mm/yy
+            res.forEach( el => el.date = Utils.formatDate(el.date));
 
-        Transaction.all = res;
-        App.init();
+            Transaction.all = res;
+            App.init();
+            
+        } catch (error) {
+           alert('Error ao carregar dados...');            
+        }
     },
 
     async addTransaction(transaction) {
-        await fetch(Api.baseUrl, { method: 'POST', headers:{ "Content-Type": "application/json" }, body: JSON.stringify(transaction) })
+       try {
+           await fetch(Api.baseUrl, { method: 'POST', headers:{ "Content-Type": "application/json" }, body: JSON.stringify(transaction) })
+           
+       } catch (error) {
+         throw new Error('Não foi possível adicionar transação...');            
+         }
     },
 
     async deleteTransaction(id) {
