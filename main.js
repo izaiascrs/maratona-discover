@@ -1,39 +1,39 @@
+window.addEventListener('load', () => {
+    Api.getTransactions();    
+})
+
+const setDefaultFormDate = () => {
+    let date = new Date();
+    let today = `${ date.getFullYear() }-0${ date.getMonth() + 1 }-${ date.getDate() }`;
+    document.getElementById("date").value = today
+}
+
 const Modal = { 
     open() {
         document.querySelector('.modal-overlay')
-        .classList.add('active')       
+        .classList.add('active')  
+        setDefaultFormDate();     
     },
     
     close() {
         document.querySelector('.modal-overlay')
         .classList.remove('active')
         Form.clearFields();
-
-    }
-}
-
-const Storage = {
-    get() {
-        return JSON.parse(localStorage.getItem('transaction')) || [];
-    },
-
-    set(transaction) {
-        localStorage.setItem('transaction', JSON.stringify(transaction))
     }
 }
 
 const Transaction = {
-    all: Storage.get(),
+    all: [],
 
     add(transaction) {
-        Transaction.all.push(transaction);
+        Transaction.all.unshift(transaction);
         App.reload();
     },
 
     remove(index) {
-        console.log(Transaction.all);
+         const transactionID  = Transaction.all[index]._id;
+        Api.deleteTransaction(transactionID);
         Transaction.all.splice(index, 1);
-
         App.reload();
     },
 
@@ -105,10 +105,8 @@ const Utils = {
     },
 
     formatDate(date) {
-        const splittedDate = date.split('-');       
-        
-        return `${splittedDate[2]}/${splittedDate[1]}/${splittedDate[0]}`;
-
+        const splittedDate = date.split('-');
+        return `${splittedDate[2].slice(0,2)}/${splittedDate[1]}/${splittedDate[0]}`;
     },
 
     formatCurrency(value) {
@@ -170,11 +168,19 @@ const Form = {
             Form.validateFields();
             const transaction =  Form.formatValues();
 
+            // formatar data para yy/mm/dd
+            const date = transaction.date.split('/');
+            const formatedDate = `${date[2]}/${date[1]}/${date[0]}`
+            
+            // chamada a API para adicionar transação no banco de dados 
+            Api.addTransaction({...transaction, date: formatedDate});
+            
+            // adicionar transação na DOM 
             Transaction.add(transaction);
-
+            
             Form.clearFields();
-
             Modal.close();
+            App.reload()
             
         } catch (error) {
             alert(error.message)
@@ -186,10 +192,7 @@ const Form = {
 const App = {
     init() {
         Transaction.all.forEach(DOM.addTransaction);
-
         DOM.updateBalance();
-
-        Storage.set(Transaction.all);
     },
 
     reload() {
@@ -197,14 +200,26 @@ const App = {
         App.init();
     },
 }
-const setDefaultFormDate = () => {
-    let date = new Date();
-    let today = `${ date.getFullYear() }-0${ date.getMonth() + 1 }-${ date.getDate() }`;
-    document.getElementById("date").value = today
+
+const Api = {
+    baseUrl: 'http://localhost:3000/api/v1/transactions/',
+    
+    async getTransactions() {
+        const data = await fetch(Api.baseUrl);
+        const res = await data.json();
+
+        // formatar data para dd/mm/yy
+        res.forEach( el => el.date = Utils.formatDate(el.date));
+
+        Transaction.all = res;
+        App.init();
+    },
+
+    async addTransaction(transaction) {
+        await fetch(Api.baseUrl, { method: 'POST', headers:{ "Content-Type": "application/json" }, body: JSON.stringify(transaction) })
+    },
+
+    async deleteTransaction(id) {
+        await fetch(Api.baseUrl + id, { method: 'delete' });            
+    },
 }
-
-setDefaultFormDate();
-
-App.init();
-
-
