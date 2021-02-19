@@ -1,18 +1,14 @@
 window.addEventListener('load', () => {
     Api.getTransactions();
+    const isSpeechSuport = 'webkitSpeechRecognition' in window;
+    if(!isSpeechSuport) btnSpeak.btn.style.display = 'none';
 })
-
-const setDefaultFormDate = () => {
-    let date = new Date();
-    let today = `${ date.getFullYear() }-0${ date.getMonth() + 1 }-${ date.getDate() }`;
-    document.getElementById("date").value = today
-}
 
 const Modal = { 
     open() {
         document.querySelector('.modal-overlay')
         .classList.add('active')  
-        setDefaultFormDate();     
+        Utils.setDefaultFormDate();
     },
     
     close() {
@@ -109,6 +105,16 @@ const Utils = {
         return `${splittedDate[2].slice(0,2)}/${splittedDate[1]}/${splittedDate[0]}`;
     },
 
+    formatDateOnSpeak(date) {
+        const arr = date.split('/');
+
+        const day = arr[0].length == 1 ? "0" + arr[0] : arr[0];
+        const month = arr[1].length == 1 ? "0" + arr[1]: arr[1];
+        const year = arr[2];
+    
+        return `${year}-${month}-${day}`;
+    },
+
     formatCurrency(value) {
         value= value / 100;
 
@@ -118,6 +124,12 @@ const Utils = {
         });
 
         return value;
+    },
+
+    setDefaultFormDate() {
+        let date = new Date();
+        let today = `${ date.getFullYear() }-0${ date.getMonth() + 1 }-${ date.getDate() }`;
+        document.getElementById("date").value = today
     }
 }
 
@@ -207,7 +219,7 @@ const App = {
 }
 
 const Api = {
-    // http://localhost:3000/api/v1/transactions/,
+    // 'http://localhost:3000/api/v1/transactions/'
     baseUrl: '',
     
     async getTransactions() {
@@ -238,4 +250,131 @@ const Api = {
     async deleteTransaction(id) {
         await fetch(Api.baseUrl + id, { method: 'delete' });            
     },
+}
+
+const speakComands = {
+    cancelar() {
+        Form.amout.blur();
+        Form.date.blur();
+        Modal.close();        
+    },
+
+    encerrar(recognition) {
+        recognition.stop();
+    },
+    
+    salvar() {
+        try {
+            Form.validateFields();
+            Form.submit(event);
+            
+        } catch (error) {
+            alert(error.message)
+            
+        }
+        Modal.close();        
+    },
+
+    adicionar() {
+        Modal.open();
+        Form.description.focus();
+        return input.Focus = 'description';
+    },
+
+    
+}
+
+const input = {
+    Focus: '',
+}
+
+const checkInputFocus = {
+
+    description(transcript) {
+        if(transcript == 'ok') {
+            Form.amout.focus();
+            return input.Focus = 'amout';
+        }               
+        Form.description.value = transcript;
+    },
+
+    amout(transcript) {
+        if(transcript == 'ok') {
+            Form.date.focus();
+            return input.Focus = 'date';
+        }
+        Form.amout.value = transcript;
+    },
+
+    date(transcript) {
+        if(transcript == 'ok' || transcript == 'salvar') {
+            Form.date.blur();
+            return input.Focus = '';
+        }
+        transcript = Utils.formatDateOnSpeak(transcript);
+        Form.date.value = transcript;
+    }
+
+}
+
+const btnSpeak = {
+    btn: document.getElementById('btn-speak'), 
+
+    addClass() {
+        btnSpeak.btn.classList.add('speaking');
+        btnSpeak.btn.style.background = 'var(--green)';
+    },
+
+    removeClass() {
+        console.log('remove class');
+        btnSpeak.btn.classList.remove('speaking');
+        btnSpeak.btn.style.background = 'var(--dark-blue)';
+    },
+
+    speaking(recognition) {
+        recognition.stop();
+        btnSpeak.btn.classList.remove('speaking')
+        return btnSpeak.btn.style.background = 'var(--dark-blue)';     
+    }
+}
+
+const Speak = {
+        
+    start() {
+        const SpeechRecognition =  window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.start();
+        const btnClass = btnSpeak.btn.classList[0];
+        
+        if(btnClass == 'speaking') {
+            btnSpeak[btnClass](recognition);
+        } else {
+            btnSpeak.addClass();
+        }
+
+        recognition.onresult = (event) => {        
+            const current = event.resultIndex;            
+            let transcript = (event.results[current][0].transcript).toLocaleLowerCase().trim();
+            
+            const speakOptions =  speakComands[transcript];
+            const focus = checkInputFocus[input.Focus];
+
+            // checar se o comando é valido e igual encerrar
+            // retornar função com o parâmetro recognition 
+            if(speakOptions && transcript == 'encerrar') {
+                btnSpeak.removeClass();
+                return speakOptions(recognition);
+            }
+
+            // checar se o comando é valido
+            if(speakOptions) return speakOptions();
+
+            // checar qual input está em foco
+            if(focus) return  focus(transcript);           
+                        
+        }
+
+    }
+
 }
