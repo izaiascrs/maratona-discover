@@ -36,6 +36,7 @@ body {
 .container {
     width: min(90vw, 800px);
     margin: auto;
+    position: relative;
 }
 
 /*===========Titles============*/
@@ -90,6 +91,24 @@ button:hover {
 .button.cancel:hover {
     opacity: 1;
 }
+
+button#btn-speak {
+    position: fixed;
+    bottom: 5%;
+    right: 5%;
+    width: 50px;
+    border-radius: 50%;
+    background: var(--dark-blue);
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button#btn-speak:focus {
+    outline: none;
+}
+
 
 /*===========Header============*/
 header {
@@ -288,4 +307,12 @@ footer {
         grid-template-columns: repeat(3, 1fr);
         gap: 1.8rem;
     }   
+   
+}
+
+@media (min-width: 1500px) {
+    button#btn-speak {
+        right: 10%;
+        bottom: 10%;
+    }
 }
